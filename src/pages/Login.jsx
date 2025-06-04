@@ -1,89 +1,100 @@
-import { useState } from "react";
-import Header from "../components/Header";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { login } from "../services/authService";
 
 function Login() {
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
+    const handleLogin = async (e) => {
         e.preventDefault();
+        try {
+            const response = await login({ username, password });
+            const { token, userId, employeeId } = response.data;
 
-        if (email === "employee@workxlife.com" && password === "password") {
-            localStorage.setItem("token", "mock-token");
-            alert("Login successful (mock)!");
-        } else {
-            alert("Invalid credentials (mock)");
+            console.log("Login Response:", response.data);
+
+            localStorage.setItem("token", token);
+            localStorage.setItem("loginResponse", JSON.stringify({ token, userId, employeeId }));
+
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const roles = payload.roles || [];
+            const role = roles[0]?.toLowerCase().replace("role_", "");
+            localStorage.setItem("role", role);
+
+            if (role === "employee") {
+                if (employeeId !== undefined && employeeId !== null) {
+                    localStorage.setItem("employeeId", employeeId);
+                } else {
+                    localStorage.removeItem("employeeId");
+                }
+                navigate("/employee/dashboard");
+            } else if (role === "employer") {
+                localStorage.setItem("employerId", userId);
+                navigate("/employer/dashboard");
+            } else {
+                alert("Unknown role in token");
+            }
+
+            alert("Login Successful!");
+        } catch (error) {
+            console.error("Login Failed!", error);
+            alert("Login Failed!");
         }
     };
 
     return (
-        <>
-            <Header />
-
-            <div className="flex items-center justify-center min-h-[calc(100vh-64px)] bg-[#f2f2f5]">
-                <div className="bg-white shadow-xl rounded-xl p-10 w-full max-w-md border border-gray-200">
-                    <h1 className="text-3xl font-semibold text-center text-gray-900 mb-8 tracking-tight">
-                        Work<span className="text-black">X</span>Life Login
-                    </h1>
-
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Email</label>
-                            <input
-                                type="email"
-                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800 text-gray-800"
-                                placeholder="your@email.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Password</label>
-                            <input
-                                type="password"
-                                className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-gray-800 focus:border-gray-800 text-gray-800"
-                                placeholder="••••••••"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-                        <button
-                            type="submit"
-                            className="w-full bg-gray-900 text-white py-2 rounded-md hover:bg-black transition duration-200"
-                        >
-                            Sign In
-                        </button>
-                    </form>
-
-                    {/* Register Link */}
-                    <div className="mt-4 text-center text-sm text-gray-600">
-                        Don't have an account?{" "}
-                        <a href="/register" className="text-blue-600 hover:underline font-medium">
-                            Register here
-                        </a>
+        <div className="min-h-screen w-full flex justify-center items-start bg-[#f2f2f5] pt-36 overflow-hidden">
+            <div className="bg-white shadow-xl rounded-xl p-10 w-full max-w-md border border-gray-200">
+                <h1 className="text-3xl font-semibold text-center text-gray-900 mb-8 tracking-tight">
+                    Work<span className="text-black">X</span>Life Login
+                </h1>
+                <form onSubmit={handleLogin} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Username</label>
+                        <input
+                            type="text"
+                            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm"
+                            placeholder="Your username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                        />
                     </div>
-
-                    {/* Google Login Button */}
-                    <div className="mt-6">
-                        <button
-                            type="button"
-                            className="w-full border border-gray-300 text-gray-800 py-2 rounded-md hover:bg-gray-100 transition duration-200 flex items-center justify-center space-x-2"
-                            onClick={() => alert("Google login coming soon!")}
-                        >
-                            <img
-                                src="https://www.svgrepo.com/show/475656/google-color.svg"
-                                alt="Google"
-                                className="w-5 h-5"
-                            />
-                            <span>Continue with Google</span>
-                        </button>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Password</label>
+                        <input
+                            type="password"
+                            className="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm"
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
                     </div>
+                    <button
+                        type="submit"
+                        className="w-full bg-gray-900 text-white py-2 rounded-md hover:bg-black transition duration-200"
+                    >
+                        Sign In
+                    </button>
+                </form>
+                <div className="mt-4 text-center text-sm text-gray-600">
+                    Don't have an account?{" "}
+                    <a href="/register" className="text-blue-600 hover:underline font-medium">
+                        Register here
+                    </a>
                 </div>
             </div>
-        </>
+        </div>
     );
-
-
 }
 
 export default Login;
