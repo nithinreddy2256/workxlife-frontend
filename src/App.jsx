@@ -3,7 +3,8 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Header from "./components/Header";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
-import EmployerDashboard from "./pages/EmployerDashboard"; // ✅ updated import
+import EmployerDashboard from "./pages/EmployerDashboard";
+import EmployeeProfile from "./components/EmployeeProfile";
 
 function App() {
     return (
@@ -14,6 +15,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
                 <Route path="/employer/dashboard" element={<EmployerDashboard />} />
+                <Route path="/employee/profile" element={<EmployeeProfile />} />
             </Routes>
         </Router>
     );
