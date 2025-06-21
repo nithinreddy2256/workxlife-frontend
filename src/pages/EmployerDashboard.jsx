@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { login } from "../services/authService";
 
 function EmployerDashboard() {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("jobs");
     const [jobs, setJobs] = useState([]);
     const [applicationsByJob, setApplicationsByJob] = useState({});
@@ -25,16 +26,16 @@ function EmployerDashboard() {
 
     const fetchJobsByEmployer = async () => {
         try {
-            const response = await fetch(
-                `http://localhost:8080/job-service/api/jobs/by-employer/${employerId}`,
-                {
-                    method: "GET",
-                    headers: {
-                        "Authorization": `Bearer ${localStorage.getItem("token")}`,
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
+            const token = localStorage.getItem("token");
+
+            const response = await fetch(`http://localhost:8080/job-service/api/jobs/by-employer/${employerId}`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${token}`
+
+                },
+                cache: "no-store"
+            });
 
             if (!response.ok) {
                 const message = await response.text();
@@ -47,6 +48,7 @@ function EmployerDashboard() {
             console.error("Failed to load jobs:", error);
         }
     };
+
 
     const handleInputChange = (e) => {
         setNewJob({ ...newJob, [e.target.name]: e.target.value });
@@ -87,21 +89,43 @@ function EmployerDashboard() {
 
     const fetchApplicationsForJob = async (jobId) => {
         try {
-            const response = await fetch(`http://localhost:8080/job-service/api/applications/by-job/${jobId}`, {
+            const token = localStorage.getItem("token");
+
+            if (!token || token.split('.').length !== 3) {
+                throw new Error("Invalid or missing token");
+            }
+
+            const response = await fetch(`http://localhost:8080/job-service/api/applications/job/${jobId}`, {
                 headers: {
-                    "Authorization": `Bearer ${localStorage.getItem("token")}`
-                }
+                    "Authorization": `Bearer ${token}`
+                },
+                cache: "no-store"
             });
+
             if (!response.ok) {
                 const message = await response.text();
                 throw new Error(`HTTP ${response.status}: ${message}`);
             }
-            const data = await response.json();
-            setApplicationsByJob((prev) => ({ ...prev, [jobId]: data }));
+
+            const contentType = response.headers.get("content-type") || "";
+
+            if (contentType.includes("application/json")) {
+                const data = await response.json();
+                setApplicationsByJob((prev) => ({ ...prev, [jobId]: data }));
+            } else {
+                const rawText = await response.text(); // helpful for debugging
+                console.error("Unexpected content-type. Raw response:", rawText);
+                throw new Error("Unexpected response format (not JSON)");
+            }
+
         } catch (error) {
             console.error("Failed to load applications:", error);
         }
     };
+
+
+
+
 
     const handleDeleteJob = async (jobId) => {
         try {
@@ -172,15 +196,29 @@ function EmployerDashboard() {
                                     <div className="mt-4">
                                         <h3 className="font-semibold mb-2">Applications:</h3>
                                         <ul className="space-y-2">
-                                            {applicationsByJob[job.id].map((app) => (
-                                                <li key={app.id} className="p-2 border rounded bg-gray-50">
-                                                    <p><strong>Employee ID:</strong> {app.employeeId}</p>
-                                                    <p><strong>Status:</strong> {app.status}</p>
+                                            {applicationsByJob[job.id].map(({ applicantId, applicantName, appliedAt, jobTitle, companyName }, index) => (
+                                                <li key={index} className="p-2 border rounded bg-gray-50">
+                                                    <p>
+                                                        <strong>Applicant:</strong>{" "}
+                                                        <button
+                                                            className="text-blue-600 hover:underline"
+                                                            onClick={() => navigate(`/employee/profile/${applicantId}`)}
+                                                        >
+                                                            {applicantName}
+                                                        </button>
+                                                    </p>
+                                                    <p><strong>Applied At:</strong> {new Date(appliedAt).toLocaleString()}</p>
+                                                    <p><strong>Job Title:</strong> {jobTitle}</p>
+                                                    <p><strong>Company:</strong> {companyName}</p>
                                                 </li>
                                             ))}
+
                                         </ul>
                                     </div>
                                 )}
+
+
+
                             </div>
                         ))
                     )}

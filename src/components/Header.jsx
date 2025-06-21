@@ -26,10 +26,13 @@ function Header() {
         navigate("/");
     };
 
-    let profileLink = "/";
-    if (role === "employer") {
-        profileLink = "/"; // later you can route to employer dashboard
+    let homeLink = "/";
+    if (role === "employee") {
+        homeLink = "/employee/dashboard";
+    } else if (role === "employer") {
+        homeLink = "/employer/dashboard";
     }
+
 
     return (
         <header className="bg-white shadow-sm border-b border-gray-200 relative">
@@ -58,12 +61,14 @@ function Header() {
                                 <button
                                     onClick={() => {
                                         setShowDropdown(false);
-                                        navigate(profileLink);
+                                        navigate(role === "employee" ? "/employee/dashboard" : "/employer/dashboard");
                                     }}
                                     className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
                                 >
                                     Home
                                 </button>
+
+
 
                                 <button
                                     onClick={() => {
