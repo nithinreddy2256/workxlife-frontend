@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { FaPen } from "react-icons/fa";
-import { useParams, useNavigate } from "react-router-dom"; // combined into one line
+import { useParams, useNavigate } from "react-router-dom";
 
 function EmployeeProfile() {
-    const { employeeId } = useParams(); //
+    const { employeeId: paramId } = useParams(); // from URL
+    const navigate = useNavigate();
+    const token = localStorage.getItem("token");
+    const loginResponse = JSON.parse(localStorage.getItem("loginResponse"));
+
+    const ownEmployeeId = loginResponse?.employeeId?.toString();
+    const viewedEmployeeId = paramId || ownEmployeeId;
+
+    const isOwner = ownEmployeeId === viewedEmployeeId;
+
     const [profile, setProfile] = useState(null);
     const [editingInfo, setEditingInfo] = useState(false);
     const [editingFiles, setEditingFiles] = useState(false);
@@ -21,18 +30,14 @@ function EmployeeProfile() {
     const resumeInputRef = useRef(null);
     const imageInputRef = useRef(null);
 
-    const navigate = useNavigate();
-    const token = localStorage.getItem("token");
-    const loginResponse = JSON.parse(localStorage.getItem("loginResponse"));
-    const isOwner = loginResponse?.employeeId?.toString() === employeeId?.toString();
-
     useEffect(() => {
-        fetchProfile();
-    }, [employeeId]);
+        if (!viewedEmployeeId) return;
+        fetchProfile(viewedEmployeeId);
+    }, [viewedEmployeeId]);
 
-    const fetchProfile = async () => {
+    const fetchProfile = async (id) => {
         try {
-            const res = await axios.get(`http://localhost:8080/employee-service/api/employees/${employeeId}`, {
+            const res = await axios.get(`http://localhost:8080/employee-service/api/employees/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
@@ -55,6 +60,7 @@ function EmployeeProfile() {
             console.error("Failed to load profile", err);
         }
     };
+
 
 
     const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });

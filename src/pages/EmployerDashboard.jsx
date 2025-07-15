@@ -124,6 +124,32 @@ function EmployerDashboard() {
     };
 
 
+    const updateApplicationStatus = async (applicationId, newStatus, jobId) => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`http://localhost:8080/job-service/api/applications/${applicationId}/status?status=${newStatus}`, {
+                method: "PATCH",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                const msg = await response.text();
+                throw new Error(`HTTP ${response.status}: ${msg}`);
+            }
+
+            alert(`Application ${newStatus.toLowerCase()} successfully!`);
+
+            //  Re-fetch applications for the current job
+            fetchApplicationsForJob(jobId);
+
+        } catch (err) {
+            console.error("Status update failed:", err);
+            alert("Failed to update application status.");
+        }
+    };
+
 
 
 
@@ -196,26 +222,42 @@ function EmployerDashboard() {
                                     <div className="mt-4">
                                         <h3 className="font-semibold mb-2">Applications:</h3>
                                         <ul className="space-y-2">
-                                            {applicationsByJob[job.id].map(({ applicantId, applicantName, appliedAt, jobTitle, companyName }, index) => (
+                                            {applicationsByJob[job.id].map((app, index) => (
                                                 <li key={index} className="p-2 border rounded bg-gray-50">
                                                     <p>
                                                         <strong>Applicant:</strong>{" "}
                                                         <button
                                                             className="text-blue-600 hover:underline"
-                                                            onClick={() => navigate(`/employee/profile/${applicantId}`)}
+                                                            onClick={() => navigate(`/employee/profile/${app.applicantId}`)}
                                                         >
-                                                            {applicantName}
+                                                            {app.applicantName}
                                                         </button>
                                                     </p>
-                                                    <p><strong>Applied At:</strong> {new Date(appliedAt).toLocaleString()}</p>
-                                                    <p><strong>Job Title:</strong> {jobTitle}</p>
-                                                    <p><strong>Company:</strong> {companyName}</p>
+                                                    <p><strong>Applied At:</strong> {new Date(app.appliedAt).toLocaleString()}</p>
+                                                    <p><strong>Job Title:</strong> {app.jobTitle}</p>
+                                                    <p><strong>Company:</strong> {app.companyName}</p>
+                                                    <p><strong>Status:</strong> {app.status}</p>
+
+                                                    <div className="flex gap-3 mt-2">
+                                                        <button
+                                                            onClick={() => updateApplicationStatus(app.id, "HIRED", job.id)}
+                                                            className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-1 rounded"
+                                                        >
+                                                            Accept
+                                                        </button>
+                                                        <button
+                                                            onClick={() => updateApplicationStatus(app.id, "REJECTED", job.id)}
+                                                            className="bg-red-500 hover:bg-red-600 text-white text-sm px-4 py-1 rounded"
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </div>
                                                 </li>
                                             ))}
-
                                         </ul>
                                     </div>
                                 )}
+
 
 
 
